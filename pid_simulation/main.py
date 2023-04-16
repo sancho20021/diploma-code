@@ -6,15 +6,20 @@ import pandas as pd
 import numpy as np
 import re
 import math
-from processes import (
+from task_model import (
     S3,
     IntervalStorage,
     TaskExecutor,
     TasksLauncher,
-    Logger,
+)
+
+from hard_limit_control import (
     PID,
     SmartTasksLauncher
 )
+
+from task_model.loggers import Logger
+
 from simulator import Simulator
 
 
@@ -33,8 +38,7 @@ class S3Modifier:
                 self.s3.cap = self.default_cap
 
 
-
-def main():
+if __name__ == '__main__':
     pid_period = 0.2
     cleanup_period = 0.02
     logger_period = 0.03
@@ -74,16 +78,11 @@ def main():
         s3=s3
     )
 
-
-
     # ----------- PID
     # processes = [task_launcher, logger, interval_controller, s3_modifier]
 
     # ------ Smart Estimator
     processes = [SmartTasksLauncher(s3=s3, task_executor=task_executor, period=0.01), logger, s3_modifier]
-
-
-
 
     simulator = Simulator(processes)
     simulator.simulate(400)

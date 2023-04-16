@@ -22,11 +22,6 @@ class TargetProvider:
         pass
 
 
-class Driver:
-    def convert_to_input(self, x) -> float:
-        pass
-
-
 class PID:
     """
     Его запускают строго раз в period секунд
@@ -39,7 +34,6 @@ class PID:
         k_d: float,
         controlled_object: ControlledObject,
         target_provider: TargetProvider,
-        driver: Driver,
         period: float
     ):
         self.period = period
@@ -50,7 +44,6 @@ class PID:
 
         self.controlled_object = controlled_object
         self.target_provider = target_provider
-        self.driver = driver
 
         self.e_prev = 0
         self.sum_e_prev = 0
@@ -79,7 +72,6 @@ class PID:
 
         # print(f'error={e}, sum_error = {self.sum_e_prev}, u={u}')
 
-        input = self.driver.convert_to_input(u)
-        self.controlled_object.set_input(input, t)
+        self.controlled_object.set_input(u, t)
         self.input_copy = input
         # print(f'new_input={input}')

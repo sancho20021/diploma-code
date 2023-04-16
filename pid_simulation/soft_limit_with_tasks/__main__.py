@@ -1,9 +1,9 @@
 from soft_limit_with_tasks.task_executors import (
     TaskExetutorQueueMaintainer,
     TaskExecutor,
-    Task,
     ResourceLogger
 )
+from task_model import Task
 from soft_limit_with_tasks.resources import SoftResourceProvider
 from soft_limit_with_tasks.launchers import (
     CheatingLauncher,
@@ -197,4 +197,4 @@ if __name__ == '__main__':
 
     # ----------------- relative error pid launcher -----------------
 
-    test_on_stair(lambda config: relative_pid_launcher(config, k_p=0.5, k_i=0.0001, k_d=0), 'pid_stair.json')
+    test_on_stair(lambda config: relative_pid_launcher(config, k_p=0.5, k_i=0.0001, k_d=0), 'logs/pid_stair.json')

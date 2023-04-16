@@ -5,7 +5,6 @@ from linear_functions import (
     simple_linear
 )
 from target_providers import TargetProviderFromFunction
-from drivers import IdentityDriver
 from logger import (Logger, MultiPidLogger, AggregatingLogger)
 from simulator import Simulator
 
@@ -18,8 +17,8 @@ def test_multi_pid():
     f2 = simple_linear(k=1, b=1)
     target2 = TargetProviderFromFunction(lambda t: 40 if t < 50 else 5)
 
-    pid1_config = PidConfig(target1, IdentityDriver(), k_p=0.1, k_i=0.4, k_d=-0.1)
-    pid2_config = PidConfig(target2, IdentityDriver(), k_p=0.1, k_i=0.4, k_d=-0.1)
+    pid1_config = PidConfig(target1, k_p=0.1, k_i=0.4, k_d=-0.1)
+    pid2_config = PidConfig(target2, k_p=0.1, k_i=0.4, k_d=-0.1)
 
     simo_object = MultiFunSimoCO({
         'cpu': f1,
@@ -61,7 +60,7 @@ def test_aggregating_pid():
         },
         k_p=-2,
         k_i=-4,
-        k_d=0, driver=IdentityDriver(), period=1
+        k_d=0, period=1
     )
 
     output_lines = []

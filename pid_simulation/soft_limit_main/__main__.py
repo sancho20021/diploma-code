@@ -12,11 +12,22 @@ from processes import (
     SmartTasksLauncher,
     SoftResourceProvider,
     SoftResourceMaintainer,
-    ExponentialDemander,
     SoftResourceLogger
 )
 from simulator import Simulator
 
+class ExponentialDemander:
+    def __init__(self, margin, res_provider: SoftResourceProvider, period: float):
+        self.margin = margin
+        self.res_provider = res_provider
+        self.period = period
+
+    def do(self, t):
+        usage = self.res_provider.usage
+        demand = self.res_provider.demand
+        assert usage <= demand
+        new_demand = max(0.01, usage * (1 + self.margin))
+        self.res_provider.require(t, new_demand)
 
 if __name__ == '__main__':
     res_provider = SoftResourceProvider(lambda t: 3 + math.sin(t))

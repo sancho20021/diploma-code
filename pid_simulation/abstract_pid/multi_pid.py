@@ -2,7 +2,7 @@ import dataclasses
 from typing import Dict
 
 from abstract_pid.pid import (
-    PID, ControlledObject, TargetProvider, Driver, SimoControlledObject
+    PID, ControlledObject, TargetProvider, SimoControlledObject
 )
 
 from abstract_pid.target_providers import ConstantTargetProvider
@@ -11,7 +11,6 @@ from abstract_pid.target_providers import ConstantTargetProvider
 @dataclasses.dataclass
 class PidConfig:
     target_provider: TargetProvider
-    driver: Driver
     k_p: float
     k_i: float
     k_d: float
@@ -51,7 +50,7 @@ class MultiPid:
         for name, config in pid_configs.items():
             co = BoxControlledObject()
             self.control_objects[name] = co
-            pid = PID(controlled_object=co, target_provider=config.target_provider, driver=config.driver, period=period,
+            pid = PID(controlled_object=co, target_provider=config.target_provider, period=period,
                       k_i=config.k_i, k_p=config.k_p, k_d=config.k_d)
             self.pids[name] = pid
 
@@ -104,7 +103,6 @@ class AggregatingPid:
         k_p: float,
         k_i: float,
         k_d: float,
-        driver: Driver,
         period: float
     ):
         self.simo_co = simo_control_object
@@ -112,13 +110,11 @@ class AggregatingPid:
         self.k_p = k_p
         self.k_i = k_i
         self.k_d = k_d
-        self.driver = driver
         self.period = period
 
         self.proxy_co = BoxControlledObject()
         self.pid = PID(k_p=k_p, k_i=k_i, k_d=k_d, controlled_object=self.proxy_co,
                        target_provider=ConstantTargetProvider(0),
-                       driver=driver,
                        period=period)
         self.input_copy = 0
 
