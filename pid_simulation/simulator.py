@@ -10,7 +10,7 @@ class Simulator:
 
     def simulate(self, time):
         t = 0
-        events = [Event(process, process.period) for process in self.processes]
+        events = [Event(process, 0) for process in self.processes]
 
         while t < time:
             next_event = min(events, key=lambda ev: ev.scheduled_time)

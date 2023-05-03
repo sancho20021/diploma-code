@@ -1,6 +1,6 @@
 import dataclasses
 from collections import deque
-from processes import Task, TaskInstance
+from task_model import Task, TaskInstance
 from soft_limit_with_tasks.resources import SoftResourceProvider
 import json
 
@@ -75,6 +75,10 @@ class TaskExecutor:
             sum += task.task.size
         return sum
 
+    def get_usage(self, t: float):
+        self.clear_finished(t)
+        return sum([task.task.size for task in self.running])
+
 
 class TaskExetutorQueueMaintainer:
     def __init__(self, period: float, task_executor: TaskExecutor):
@@ -97,7 +101,7 @@ class ResourceLogger:
 
     def do(self, t):
         record = UtilizationRecord(
-            usage=self.executor.res_provider.usage,
+            usage=self.executor.get_usage(t),
             demand=self.executor.get_demand(t),
             actual_limit=self.executor.res_provider.capacity_fun(t),
             time=t
