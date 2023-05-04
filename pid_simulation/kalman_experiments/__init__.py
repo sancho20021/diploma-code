@@ -16,7 +16,8 @@ class Barrel:
         self.period = period
 
     def do(self, t: float):
-        self.d = max(0., self.d + (self.v - self.l) * self.period)
+        # self.d = max(0., self.d + (self.v - self.l) * self.period)
+        self.d = self.d + (self.v - self.l) * self.period
 
 
 class KalmanBarrelEstimator:
@@ -72,7 +73,7 @@ class Logger:
         v = self.barrel.v
         real_l = self.barrel.l
         estimated_l = self.barrel_estimator.l_estimation
-        data = {'d': d, 'v': v, 'l_actual': real_l, 'l_estimated': estimated_l}
+        data = {'d': d, 'v': v, 'l_actual': real_l, 'l_estimated': estimated_l, 't': t}
         print(f'{t=}, {data=}')
         self.output_lines.append(data)
 
@@ -90,7 +91,7 @@ def run_kalman_experiment():
     period = 1
     duration = period * 70
 
-    barrel = Barrel(1, l_fun(0), period)
+    barrel = Barrel(7, l_fun(0), period)
     barrel_estimator = KalmanBarrelEstimator(barrel, period)
     l_changer = LChanger(barrel, l_fun)
     logger = Logger(barrel, barrel_estimator, output_lines)
