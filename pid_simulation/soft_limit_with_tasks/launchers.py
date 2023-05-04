@@ -1,6 +1,8 @@
 import dataclasses
 import math
 from typing import Any
+from filterpy.kalman import KalmanFilter
+import numpy as np
 
 from soft_limit_with_tasks.resources import SoftResourceProvider
 from soft_limit_with_tasks.task_executors import TaskExecutor
@@ -18,12 +20,12 @@ class LauncherConfig:
 
 class CheatingLauncher:
     def __init__(
-        self,
-        res_provider: SoftResourceProvider,
-        executor: TaskExecutor,
-        gen_task,
-        demand_estimator: ExponentialEstimator,
-        period: float
+            self,
+            res_provider: SoftResourceProvider,
+            executor: TaskExecutor,
+            gen_task,
+            demand_estimator: ExponentialEstimator,
+            period: float
     ):
         self.res_provider = res_provider
         self.executor = executor
@@ -52,15 +54,15 @@ class PidLauncher:
     """
 
     def __init__(
-        self,
-        res_provider: SoftResourceProvider,
-        executor: TaskExecutor,
-        gen_task,
-        demand_estimator: ExponentialEstimator,
-        k_p: float,
-        k_i: float,
-        k_d: float,
-        period: float
+            self,
+            res_provider: SoftResourceProvider,
+            executor: TaskExecutor,
+            gen_task,
+            demand_estimator: ExponentialEstimator,
+            k_p: float,
+            k_i: float,
+            k_d: float,
+            period: float
     ):
         self.res_provider = res_provider
         self.executor = executor
@@ -110,15 +112,15 @@ class RelativeErrorPidLauncher:
     """
 
     def __init__(
-        self,
-        res_provider: SoftResourceProvider,
-        executor: TaskExecutor,
-        gen_task,
-        demand_estimator: ExponentialEstimator,
-        k_p: float,
-        k_i: float,
-        k_d: float,
-        period: float
+            self,
+            res_provider: SoftResourceProvider,
+            executor: TaskExecutor,
+            gen_task,
+            demand_estimator: ExponentialEstimator,
+            k_p: float,
+            k_i: float,
+            k_d: float,
+            period: float
     ):
         self.res_provider = res_provider
         self.executor = executor
@@ -164,12 +166,12 @@ class RelativeErrorPidLauncher:
 
 class NaiveLauncher:
     def __init__(
-        self,
-        res_provider: SoftResourceProvider,
-        executor: TaskExecutor,
-        gen_task,
-        demand_estimator: ExponentialEstimator,
-        period: float
+            self,
+            res_provider: SoftResourceProvider,
+            executor: TaskExecutor,
+            gen_task,
+            demand_estimator: ExponentialEstimator,
+            period: float
     ):
         self.res_provider = res_provider
         self.executor = executor
@@ -191,12 +193,12 @@ class NaiveLauncher:
 
 class ConstantRateLauncher:
     def __init__(
-        self,
-        res_provider: SoftResourceProvider,
-        executor: TaskExecutor,
-        gen_task,
-        slots: int,
-        period: float
+            self,
+            res_provider: SoftResourceProvider,
+            executor: TaskExecutor,
+            gen_task,
+            slots: int,
+            period: float
     ):
         self.res_provider = res_provider
         self.executor = executor
@@ -214,12 +216,12 @@ class ConstantRateLauncher:
 
 class ProportionalLauncher:
     def __init__(
-        self,
-        executor: TaskExecutor,
-        gen_task,
-        optimistic_delta: float,
-        step: float,
-        period: float
+            self,
+            executor: TaskExecutor,
+            gen_task,
+            optimistic_delta: float,
+            step: float,
+            period: float
     ):
         self.executor = executor
         self.gen_task = gen_task
@@ -246,14 +248,14 @@ class ProportionalLauncher:
 
 class RelativePidLauncher2:
     def __init__(
-        self,
-        executor: TaskExecutor,
-        gen_task,
-        optimistic_delta: float,
-        step: float,
-        k_i: float,
-        k_d: float,
-        period: float
+            self,
+            executor: TaskExecutor,
+            gen_task,
+            optimistic_delta: float,
+            step: float,
+            k_i: float,
+            k_d: float,
+            period: float
     ):
         self.executor = executor
         self.gen_task = gen_task
@@ -302,4 +304,68 @@ class RelativePidLauncher2:
         assert slots < 1000
         for i in range(slots):
             task = self.gen_task()
+            self.executor.launch(task, t)
+
+
+class KalmanLauncher:
+    def __init__(
+            self,
+            executor: TaskExecutor,
+            gen_task,
+            s_mean: float,
+            s_dev: float,
+            l_dev: float,
+            v_underutil: float,
+            period: float
+    ):
+        self.executor = executor
+        self.gen_task = gen_task
+        self.period = period
+
+        self.s_dev = s_dev
+        self.l_dev = l_dev
+        self.v_underutil = v_underutil
+
+        # kalman thingy
+        self.f = KalmanFilter(dim_x=3, dim_z=2, dim_u=1)
+        # x = [l, v, d]
+        self.f.x = np.array([1., 1., 0.])
+        self.f.H = np.array([[0., 1., 0.],
+                             [0., 0., 1.]])
+        self.f.P *= 100
+        self.f.R = np.array([[0., 0.],
+                             [0., 0.]])
+        self.f.Q = np.array([[self.l_dev ** 2, 0., 0.],
+                             [0., 0., 0.],
+                             [0., 0., self.s_dev ** 2]])
+        self.s_mean = s_mean
+        self.v = 1
+
+    def _get_slots(self, t) -> int:
+        print(f'===========get slots start, {t=}===========')
+        self.f.F = np.array([[1., 0., 0.],
+                             [0., 1., 0.],
+                             [-self.period, self.s_mean * self.period, 1.]])
+        self.f.B = np.array([0, 1, self.s_mean * self.period])
+        d = (self.executor.get_demand(t) - self.executor.get_usage(t)) * self.s_mean
+        print(f'{d=}')
+        z = np.array([self.v, d])
+        print(f'{z=}')
+        new_v = self.f.x[0] / self.s_mean * self.v_underutil # v * s -> l
+        self.f.predict(u=new_v - self.v)
+        print(f'predicted = {self.f.x}')
+        self.f.update(z)
+        print(f'updated = {self.f.x}')
+        self.v = new_v
+        slots = round(max(0.0, self.period * self.v))
+        print(f'===========get slots end===========\n')
+        return slots
+
+    def do(self, t):
+        slots = self._get_slots(t)
+        print(f'slots={slots}')
+        assert slots < 1000
+        for i in range(slots):
+            task = self.gen_task()
+            # assert task.size == 1
             self.executor.launch(task, t)

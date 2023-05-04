@@ -8,7 +8,7 @@ from soft_limit_with_tasks.resources import SoftResourceProvider
 from soft_limit_with_tasks.launchers import (
     ConstantRateLauncher,
     ProportionalLauncher,
-    RelativePidLauncher2
+    RelativePidLauncher2, KalmanLauncher
 )
 from soft_limit_with_tasks.target_demand_estimators import ExponentialEstimator
 from simulator import Simulator
@@ -116,6 +116,21 @@ if __name__ == '__main__':
         k_d = 0
         return pid_launcher(config, step_pid, optimistic_delta, k_i=k_i, k_d=k_d)
 
+    def kalman_launcher(config: LauncherConfig2) -> KalmanLauncher:
+        s_mean = task_duration
+        s_dev = task_duration_dev
+        l_dev = 1
+        v_underutil = 0.95
+        return KalmanLauncher(
+            executor=config.executor,
+            gen_task=config.gen_task,
+            s_mean=s_mean,
+            s_dev=s_dev,
+            l_dev=l_dev,
+            v_underutil=v_underutil,
+            period=config.period
+        )
+
 
     # test_on_constant_configurable(launcher_period=0.1,
     #                               capacity=300, logged_points=1000,
@@ -129,8 +144,14 @@ if __name__ == '__main__':
     #                               gen_task=gen_task,
     #                               launcher=const_launcher, output_file='logs/comparison/constant1.json')
 
+    # test_on_constant_configurable(launcher_period=1,
+    #                               capacity=11, logged_points=1000,
+    #                               simulated_duration=200, queue_maintainer_period=0.4,
+    #                               gen_task=gen_task,
+    #                               launcher=pid_launcher_fixed, output_file='logs/comparison/pid1.json')
+
     test_on_constant_configurable(launcher_period=1,
                                   capacity=11, logged_points=1000,
                                   simulated_duration=200, queue_maintainer_period=0.4,
                                   gen_task=gen_task,
-                                  launcher=pid_launcher_fixed, output_file='logs/comparison/pid1.json')
+                                  launcher=kalman_launcher, output_file='logs/comparison/kalman.json')
