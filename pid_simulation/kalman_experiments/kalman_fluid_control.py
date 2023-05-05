@@ -28,10 +28,11 @@ def run_kalman_control():
             return 5
 
     period = 1
-    duration = period * 70
-    under_util = 0.95
+    duration = period * 100
+    under_util = 1.
 
     barrel = Barrel(7, l_fun(0), period)
+    # barrel = Barrel(7, l_fun(0), -10, period)
     barrel_estimator = KalmanBarrelEstimator(barrel, period)
     l_changer = LChanger(barrel, l_fun)
     logger = Logger(barrel, barrel_estimator, output_lines)

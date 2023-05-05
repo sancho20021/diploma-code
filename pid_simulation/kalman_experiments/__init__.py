@@ -13,11 +13,13 @@ class Barrel:
         self.v = v0
         self.l = l0
         self.d = 0
+        # self.min_demand = min_demand
         self.period = period
 
     def do(self, t: float):
         # self.d = max(0., self.d + (self.v - self.l) * self.period)
         self.d = self.d + (self.v - self.l) * self.period
+        # self.d = max(self.min_demand, self.d + (self.v - self.l) * self.period)
 
 
 class KalmanBarrelEstimator:
