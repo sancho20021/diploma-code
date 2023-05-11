@@ -18,20 +18,20 @@ class KalmanInputController:
 
 
 def run_kalman_control():
-    output_file = Path('./logs/kalman_control.json')
+    output_file = Path('./logs/kalman_control_normal_limit.json')
     output_lines = []
 
     def l_fun(t: float) -> float:
         if 20 < t < 40:
             return 10
         else:
-            return 5
+            return 7
 
     period = 1
     duration = period * 100
-    under_util = 1.
+    under_util = 1
 
-    barrel = Barrel(7, l_fun(0), period)
+    barrel = Barrel(7, l_fun(0), v_dev=1, l_dev=1, d_dev=1, period=period)
     # barrel = Barrel(7, l_fun(0), -10, period)
     barrel_estimator = KalmanBarrelEstimator(barrel, period)
     l_changer = LChanger(barrel, l_fun)

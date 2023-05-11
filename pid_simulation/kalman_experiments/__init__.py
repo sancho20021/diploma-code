@@ -9,16 +9,21 @@ from simulator import Simulator
 
 
 class Barrel:
-    def __init__(self, v0: float, l0: float, period: float):
+    def __init__(self, v0: float, l0: float, d_dev: float, l_dev: float, v_dev: float, period: float):
         self.v = v0
         self.l = l0
         self.d = 0
+        self.v_dev = v_dev
+        self.l_dev = l_dev
+        self.d_dev = d_dev
         # self.min_demand = min_demand
         self.period = period
 
     def do(self, t: float):
+        v = np.random.normal(self.v, self.v_dev)
+        l = np.random.normal(self.l, self.l_dev)
+        self.d = self.d + (v - l) * self.period + np.random.normal(0, self.d_dev)
         # self.d = max(0., self.d + (self.v - self.l) * self.period)
-        self.d = self.d + (self.v - self.l) * self.period
         # self.d = max(self.min_demand, self.d + (self.v - self.l) * self.period)
 
 
@@ -81,7 +86,7 @@ class Logger:
 
 
 def run_kalman_experiment():
-    output_file = Path('./logs/data.json')
+    output_file = Path('./logs/kalman_normal_no_control.json')
     output_lines = []
 
     def l_fun(t: float) -> float:
@@ -93,7 +98,7 @@ def run_kalman_experiment():
     period = 1
     duration = period * 70
 
-    barrel = Barrel(7, l_fun(0), period)
+    barrel = Barrel(7, l_fun(0), v_dev=1, l_dev=1, d_dev=1, period=period)
     barrel_estimator = KalmanBarrelEstimator(barrel, period)
     l_changer = LChanger(barrel, l_fun)
     logger = Logger(barrel, barrel_estimator, output_lines)

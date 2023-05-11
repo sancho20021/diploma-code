@@ -57,6 +57,39 @@ def test_on_constant_configurable(
     data.to_json(path_or_buf=output_file, orient='records', lines=True)
 
 
+def test_on_stair_configurable(
+        launcher_period: float,
+        capacity_low: float,
+        capacity_high: float,
+        logged_points: float,
+        queue_maintainer_period: float,
+        simulated_duration: float,
+        launcher: Callable[[LauncherConfig2], Any],
+        gen_task: Callable[[], Task],
+        output_file: str,
+):
+    def capacity(t: float) -> float:
+        return capacity_high if simulated_duration / 3 < t < (2 / 3 * simulated_duration) else capacity_low
+    res_provider = SoftResourceProvider(capacity)
+    task_executor = TaskExecutor(res_provider)
+    task_queue_maintainer = TaskExetutorQueueMaintainer(queue_maintainer_period, task_executor)
+
+    launcher_config = LauncherConfig2(res_provider, task_executor, gen_task, launcher_period)
+
+    task_launcher = launcher(launcher_config)
+    output_lines = []
+    logger = ResourceLogger(period=simulated_duration / logged_points, executor=task_executor,
+                            output_lines=output_lines)
+
+    processes = [task_queue_maintainer, task_launcher, logger]
+    simulator = Simulator(processes)
+    simulator.simulate(simulated_duration)
+
+    # ====--------plotting--------------
+    data = pd.DataFrame([line.__dict__ for line in output_lines])
+    data.to_json(path_or_buf=output_file, orient='records', lines=True)
+
+
 def constant_rate_launcher(config: LauncherConfig2, slots: int) -> ConstantRateLauncher:
     return ConstantRateLauncher(
         res_provider=config.res_provider,
@@ -111,9 +144,9 @@ if __name__ == '__main__':
         return constant_rate_launcher(config, constant_slots)
 
     def pid_launcher_fixed(config: LauncherConfig2) -> RelativePidLauncher2:
-        step_pid = 3
-        k_i = 0
-        k_d = 0
+        step_pid = 5
+        k_i = 3
+        k_d = 3
         return pid_launcher(config, step_pid, optimistic_delta, k_i=k_i, k_d=k_d)
 
     def kalman_launcher(config: LauncherConfig2) -> KalmanLauncher:
@@ -136,7 +169,13 @@ if __name__ == '__main__':
     #                               capacity=300, logged_points=1000,
     #                               simulated_duration=100, queue_maintainer_period=0.1,
     #                               gen_task=gen_task,
-    #                               launcher=p_launcher, output_file='logs/comparison/p_5.json')
+    #                               launcher=p_launcher, output_file='logs/comparison/p_normal.json')
+
+    # test_on_stair_configurable(launcher_period=0.1,
+    #                               capacity_low=200, capacity_high=300, logged_points=1000,
+    #                               simulated_duration=100, queue_maintainer_period=0.1,
+    #                               gen_task=gen_task,
+    #                               launcher=p_launcher, output_file='logs/comparison/p_normal_stair.json')
 
     # test_on_constant_configurable(launcher_period=1,
     #                               capacity=11, logged_points=1000,
@@ -144,14 +183,14 @@ if __name__ == '__main__':
     #                               gen_task=gen_task,
     #                               launcher=const_launcher, output_file='logs/comparison/constant1.json')
 
+    test_on_constant_configurable(launcher_period=0.1,
+                                  capacity=300, logged_points=1000,
+                                  simulated_duration=100, queue_maintainer_period=0.1,
+                                  gen_task=gen_task,
+                                  launcher=pid_launcher_fixed, output_file='logs/comparison/pid1_normal.json')
+
     # test_on_constant_configurable(launcher_period=1,
     #                               capacity=11, logged_points=1000,
     #                               simulated_duration=200, queue_maintainer_period=0.4,
     #                               gen_task=gen_task,
-    #                               launcher=pid_launcher_fixed, output_file='logs/comparison/pid1.json')
-
-    test_on_constant_configurable(launcher_period=1,
-                                  capacity=11, logged_points=1000,
-                                  simulated_duration=200, queue_maintainer_period=0.4,
-                                  gen_task=gen_task,
-                                  launcher=kalman_launcher, output_file='logs/comparison/kalman.json')
+    #                               launcher=kalman_launcher, output_file='logs/comparison/kalman.json')
